@@ -83,23 +83,28 @@ class INA226:
     def get_bus(self):
         return self.i2c_bus
 
+    def read_voltage(self):
+        voltage = read_int16(self.i2c_bus, self.ina226_address, INA226_REG_BUSVOLTAGE) * 0.00125
+        return voltage
+
     def read_shunt_voltage(self):
         voltage = read_int16(self.i2c_bus, self.ina226_address, INA226_REG_SHUNTVOLTAGE) / 400000
         return voltage
 
     def read_current(self):
-        return read_int16(self.i2c_bus, self.ina226_address, INA226_REG_CURRENT) * self.current_lsb
+        cur_reg = read_int16(self.i2c_bus, self.ina226_address, INA226_REG_CURRENT)
+        return cur_reg * self.current_lsb
 
     def read_calibration(self):
         return read_uint16(self.i2c_bus, self.ina226_address, INA226_REG_CALIBRATION)
 
-    def calibrate_by_shunt(self, shunt_r=0.1, current_max_expected=0.8):
+    def calibrate_by_shunt(self, shunt_r=0.1, current_max_expected=1):
         self.shunt_r = float(shunt_r)
-        self.current_lsb = current_max_expected / 2 ** 15
+        self.current_lsb = float(current_max_expected) / 2 ** 15
 
         self.power_lsb = self.current_lsb * 25
 
-        calibration_value = int(0.00512 / self.current_lsb / self.shunt_r)
+        calibration_value = int(0.00512 / (self.current_lsb * self.shunt_r))
 
         write_int16(self.i2c_bus, self.ina226_address, INA226_REG_CALIBRATION, calibration_value)
         return
